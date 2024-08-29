@@ -50,10 +50,8 @@ class SegmentReader:
     def _get_docfile_offset(self, position_offset: int) -> List[int]:
         self.position_handler.seek(position_offset,0)
         positions_len = struct.unpack("I", self.position_handler.read(4))[0]
-        positions = []
-
-        for i in range(positions_len):
-            positions.append(struct.unpack("I", self.position_handler.read(4))[0])
+        positions_data = self.position_handler.read(4 * positions_len)
+        positions = list(struct.unpack(f"{positions_len}I", positions_data))
         return positions
 
     @timing
@@ -84,7 +82,7 @@ class SegmentReader:
 
 reader = SegmentReader(0)
 
-search_terms = "13 MCDOWALL"
+search_terms = "13 MCDOWALL PL, KAMBAH"
 
 results = reader.search(search_terms.split(" "))
 
