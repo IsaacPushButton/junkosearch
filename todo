@@ -1,0 +1,7 @@
+- Make classes for various objects and move struct packing/unpacking logic into them
+- Make document class to drive loading
+- Work out how to speed up cases where theres a large number of matches so they dont all need to be unpacked
+- Work out how to store position data
+- Ngram tokeniser
+- Rename/restructure searching so i can keep track of what is happening
+- Make a way to plug in different search strategies to compare speeds
