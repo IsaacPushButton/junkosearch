@@ -2,13 +2,15 @@ import struct
 from typing import Optional, List, Tuple
 
 
+ROOT_PATH = ""
+
 class Docfile:
     """
     Big bucket of data where we store the actual data
     """
     def __init__(self, seg_no: int, create=False):
         mode = "w" if create else "r"
-        self.handler = open(f"index/docfile_{seg_no}.junk", f"{mode}b+")
+        self.handler = open(f"{ROOT_PATH}index/docfile_{seg_no}.junk", f"{mode}b+")
 
     def tell(self):
         return self.handler.tell()
@@ -44,7 +46,7 @@ class Skip:
     """
     def __init__(self, seg_no: int, create=False):
         mode = "w" if create else "r"
-        self.handler = open(f"index/terms_{seg_no}.tsk", f"{mode}b+")
+        self.handler = open(f"{ROOT_PATH}index/terms_{seg_no}.tsk", f"{mode}b+")
 
     def tell(self):
         return self.handler.tell()
@@ -91,7 +93,7 @@ class Terms:
     """
     def __init__(self, seg_no: int, create=False):
         mode = "w" if create else "r"
-        self.handler = open(f"index/terms_{seg_no}.tii", f"{mode}b+")
+        self.handler = open(f"{ROOT_PATH}index/terms_{seg_no}.tii", f"{mode}b+")
 
     def tell(self):
         return self.handler.tell()
@@ -137,7 +139,7 @@ class Terms:
 class Positions:
     def __init__(self, seg_no: int, create=False):
         mode = "w" if create else "r"
-        self.handler = open(f"index/positions_{seg_no}.pos", f"{mode}b+")
+        self.handler = open(f"{ROOT_PATH}index/positions_{seg_no}.pos", f"{mode}b+")
 
     def tell(self):
         return self.handler.tell()

@@ -1,7 +1,9 @@
 import csv
 from collections import defaultdict
+from typing import Iterable, Type
 
-from handlers import Docfile, Skip, Terms, Positions
+from junkosearch.document import Document
+from junkosearch.handlers import Docfile, Positions, Terms, Skip
 
 MAX_SEG_SIZE = 5 * 1024 * 1024
 
@@ -55,39 +57,34 @@ class SegmentWriter:
         self.docfile.store(doc)
 
 
-def generate_indices(data):
+def generate_indices(docs: Iterable[Document]):
     seg_count = 0
     current_seg = SegmentWriter(seg_count)
-    for idx, i in enumerate(data):
+    for idx, doc in enumerate(docs):
         if idx % 50000 == 0 and idx > 0:
             print(f"Processing {idx} - [{round(current_seg.index_mem_size() /1024 /1024 )}mb]")
             if current_seg.big_enough():
                 print("Closing segment")
                 current_seg.finalise()
                 break
-        label, _id = i.values()
-        tokens = label.split(" ")
-        serialised_string = f"{label}~{_id}"
-        current_seg.store(serialised_string, *tokens)
+
+        current_seg.store(doc.doc_vals(), *doc.tokens())
 
     if current_seg.open:
         current_seg.finalise()
 
 
+def docs_from_csv(csv_path: str, doc_type: Type[Document], delimiter:str = ",", encoding="utf-8"):
+    with open(csv_path, encoding=encoding) as f:
+        reader = csv.DictReader(f, delimiter=delimiter)
+        for idx, row in enumerate(reader):
+            data = {}
+            for k,v in doc_type._field_map.items():
+                data[k] = row[v.name]
+            yield doc_type(**data)
 
 
 
-def get_data():
-    with open("./misc/GNAF_CORE.psv") as f:
-        reader = csv.DictReader(f, delimiter="|")
-        for idx, i in enumerate(reader):
-            yield {
-            "formattedAddress": i['ADDRESS_LABEL'],
-            "addressId": i["\ufeffADDRESS_DETAIL_PID"]
-        }
-
-
-generate_indices(get_data())
 
 
 

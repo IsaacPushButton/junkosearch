@@ -1,9 +1,8 @@
 import collections
-import struct
-from typing import Optional, List, Tuple
+from typing import List
 
 from handlers import Docfile, Positions, Terms, Skip
-from util import get_string_hash, timing
+from util import timing
 
 
 class SegmentReader:
@@ -34,7 +33,7 @@ class SegmentReader:
 
 reader = SegmentReader(0)
 
-search_terms = "13 MCDOWALL PL, KAMBAH"
+search_terms = "26 ABERMAIN"
 
 results = reader.search(search_terms.split(" "))
 
