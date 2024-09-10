@@ -33,8 +33,8 @@ class SegmentReader:
 
 reader = SegmentReader(0)
 
-search_terms = "26 ABERMAIN"
+search_terms = "1 SMITH R"
 
-results = reader.search(search_terms.split(" "))
+results = reader.search([search_terms])
 
 print("\n".join(results))

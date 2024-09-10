@@ -9,7 +9,6 @@ def timing(func):
     def wrapper(*args, **kwargs):
         # Record the start time
         start_time = time.time()
-
         # Call the original function
         result = func(*args, **kwargs)
 
@@ -20,7 +19,7 @@ def timing(func):
         duration = end_time - start_time
 
         # Print or log the duration
-        print(f"Function {func.__name__} took {duration:.4f} seconds to execute.")
+        print(f"Function {args[0].__class__.__name__}.{func.__name__} took {duration:.4f} seconds to execute.")
 
         return result
 

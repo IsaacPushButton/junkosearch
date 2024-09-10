@@ -1,6 +1,8 @@
 import struct
+from mmap import mmap
 from typing import Optional, List, Tuple
 
+from junkosearch.util import timing
 
 ROOT_PATH = ""
 
@@ -29,6 +31,7 @@ class Docfile:
         self.handler.write(doc.encode("utf-8"))
         return marker
 
+    @timing
     def fetch(self, idx: int) -> str:
         """
         :param idx: The offset to find the document
@@ -67,6 +70,7 @@ class Skip:
         self.handler.write(struct.pack("I", term_marker))
         return marker
 
+    @timing
     def lookup(self, term: str) -> Optional[int]:
         """
         :param term: A full term we are looking for, does not need to exist in the skip file
@@ -114,7 +118,7 @@ class Terms:
         self.handler.write(key_encoded)  # Key
         self.handler.write(struct.pack("I", positions_marker))
         return marker
-
+    @timing
     def lookup(self, term: str,  start_at: int) -> Optional[int]:
         """
         :param term: A term to find in the inverted index
@@ -136,10 +140,37 @@ class Terms:
         return None
 
 
+def encode_varint(value: int) -> bytes:
+    result = []
+    while value > 0x7F:
+        result.append((value & 0x7F) | 0x80)
+        value >>= 7
+    result.append(value & 0x7F)
+    return bytes(result)
+
+def decode_varint(data: bytes, start: int) -> Tuple[int, int]:
+    shift = 0
+    result = 0
+    idx = start
+    while True:
+        byte = data[idx]
+        idx += 1
+        result |= (byte & 0x7F) << shift
+        if byte & 0x80 == 0:
+            break
+        shift += 7
+    return result, idx
+
 class Positions:
     def __init__(self, seg_no: int, create=False):
         mode = "w" if create else "r"
-        self.handler = open(f"{ROOT_PATH}index/positions_{seg_no}.pos", f"{mode}b+")
+
+        self.file = open(f"{ROOT_PATH}index/positions_{seg_no}.pos", f"{mode}b+")
+        if create:
+            self.handler = self.file
+        else:
+            self.handler = mmap(self.file.fileno(), 0)
+        #self.handler = open(f"{ROOT_PATH}index/positions_{seg_no}.pos", f"{mode}b+")
 
     def tell(self):
         return self.handler.tell()
@@ -155,10 +186,15 @@ class Positions:
         self.handler.seek(0, 2)
         marker = self.handler.tell()
         self.handler.write(struct.pack("I", len(offsets)))
-        for offset in offsets:
-            self.handler.write(struct.pack('I', offset))
+        prev_offset = 0
+        for offset in sorted(offsets):
+            delta = offset - prev_offset
+            encoded_delta = encode_varint(delta)
+            self.handler.write(encoded_delta)
+            prev_offset = offset
         return marker
 
+    @timing
     def fetch(self, offset: int) -> Tuple[int]:
         """
         :param offset:
@@ -167,5 +203,15 @@ class Positions:
         self.handler.seek(offset, 0)
         positions_len = struct.unpack("I", self.handler.read(4))[0]
         positions_data = self.handler.read(4 * positions_len)
-        positions = struct.unpack(f"{positions_len}I", positions_data)
-        return positions  # noqa its an int tuple okay
+
+        idx = 0
+        prev_offset = 0
+        positions = []
+        for _ in range(positions_len):
+            delta, idx = decode_varint(positions_data, idx)
+            doc_id = prev_offset + delta
+            positions.append(doc_id)
+            prev_offset = doc_id
+
+        return tuple(positions) # noqa
+

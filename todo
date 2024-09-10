@@ -5,3 +5,9 @@
 - [ ] Ngram tokeniser
 - [ ] Rename/restructure searching so i can keep track of what is happening
 - [ ] Make a way to plug in different search strategies to compare speeds
+
+
+positions:
+edgengram 100mb 1-10  w reuse - 9.6mb
+"" wo reuse                     13.6mb pos. 10.9mb terms
+

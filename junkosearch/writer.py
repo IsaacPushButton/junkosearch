@@ -5,7 +5,7 @@ from typing import Iterable, Type
 from junkosearch.document import Document
 from junkosearch.handlers import Docfile, Positions, Terms, Skip
 
-MAX_SEG_SIZE = 5 * 1024 * 1024
+MAX_SEG_SIZE = 100 * 1024 * 1024
 
 EST_POS_BYTES = 41
 
@@ -18,7 +18,7 @@ class SegmentWriter:
         self.terms = Terms(seg_no, create=True)
         self.skip = Skip(seg_no, create=True)
 
-        self.working_index = defaultdict(list, {})
+        self.working_index = defaultdict(set, {})
         self.pos_count = 0
         self.open = True
 
@@ -29,7 +29,7 @@ class SegmentWriter:
         return self.pos_count * EST_POS_BYTES
 
     def index(self, token: str):
-        self.working_index[token].append(self.docfile.tell())
+        self.working_index[token].add(self.docfile.tell())
         self.pos_count += 1
 
     def close(self):
@@ -39,6 +39,7 @@ class SegmentWriter:
         last_skip_code = None
         for key, positions in sorted(self.working_index.items(), key=lambda x: x[0]):
             this_skip_code = key[:2]
+
             if this_skip_code != last_skip_code:
                 self.skip.store(this_skip_code, self.terms.tell())
 
