@@ -1,10 +1,11 @@
+import os
 import struct
 from mmap import mmap
 from typing import Optional, List, Tuple
 
 from junkosearch.util import timing
 
-ROOT_PATH = ""
+ROOT_PATH = "./"
 
 class Docfile:
     """
@@ -12,7 +13,7 @@ class Docfile:
     """
     def __init__(self, seg_no: int, create=False):
         mode = "w" if create else "r"
-        self.handler = open(f"{ROOT_PATH}index/docfile_{seg_no}.junk", f"{mode}b+")
+        self.handler = open(f"{ROOT_PATH}/index/docfile_{seg_no}.junk", f"{mode}b+")
 
     def tell(self):
         return self.handler.tell()
@@ -50,6 +51,7 @@ class Skip:
     def __init__(self, seg_no: int, create=False):
         mode = "w" if create else "r"
         self.handler = open(f"{ROOT_PATH}index/terms_{seg_no}.tsk", f"{mode}b+")
+        self.size = 4
 
     def tell(self):
         return self.handler.tell()
@@ -76,6 +78,7 @@ class Skip:
         :param term: A full term we are looking for, does not need to exist in the skip file
         :return: An offset in the terms file to start looking
         """
+        term = term[:self.size]
         self.handler.seek(0, 0)
         while True:
             length_data = self.handler.read(4)

@@ -29,6 +29,9 @@ class EdgeNgram(Tokeniser):
         to_tokenise = s.split(self.split) if self.split else [s]
         tokens = []
         for v in to_tokenise:
-            for _len in range(self.min_len, min(self.max_len, len(v))):
+            if len(v) < self.min_len:
+                tokens.append(v)
+                continue
+            for _len in range(self.min_len, min(self.max_len, len(v) + 1)):
                 tokens.append(v[:_len])
         return tokens

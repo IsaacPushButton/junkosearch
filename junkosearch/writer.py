@@ -5,7 +5,7 @@ from typing import Iterable, Type
 from junkosearch.document import Document
 from junkosearch.handlers import Docfile, Positions, Terms, Skip
 
-MAX_SEG_SIZE = 100 * 1024 * 1024
+MAX_SEG_SIZE = 500000 * 1024 * 1024 * 100
 
 EST_POS_BYTES = 41
 
@@ -38,7 +38,7 @@ class SegmentWriter:
     def finalise(self):
         last_skip_code = None
         for key, positions in sorted(self.working_index.items(), key=lambda x: x[0]):
-            this_skip_code = key[:2]
+            this_skip_code = key[:self.skip.size]
 
             if this_skip_code != last_skip_code:
                 self.skip.store(this_skip_code, self.terms.tell())
