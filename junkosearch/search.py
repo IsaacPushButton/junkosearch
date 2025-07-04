@@ -56,7 +56,7 @@ def threaded_search(seg_no: int, terms: List[str]) -> List[str]:
     final_reader = SegmentReader(seg_no)
     return final_reader._get_docs([i[0] for i in top5])
 
-search_query = "RIV 986 WIL CAT FLAT"
+search_query = "4 SELBY PL"
 
 results = threaded_search(0, search_query.split(" "))
 

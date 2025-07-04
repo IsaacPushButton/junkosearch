@@ -52,6 +52,8 @@ class Skip:
         mode = "w" if create else "r"
         self.handler = open(f"{ROOT_PATH}index/terms_{seg_no}.tsk", f"{mode}b+")
         self.size = 4
+        self.file_size = os.fstat(self.handler.fileno()).st_size
+
 
     def tell(self):
         return self.handler.tell()
@@ -65,9 +67,9 @@ class Skip:
         :param term_marker: An offset in the terms file
         :return: Offset we stored the skip at
         """
+        key = key.ljust(4)[:4]
         self.handler.seek(0,2)
         marker = self.handler.tell()
-        self.handler.write(struct.pack('I', len(key)))
         self.handler.write(key.encode("utf-8"))
         self.handler.write(struct.pack("I", term_marker))
         return marker
@@ -78,14 +80,10 @@ class Skip:
         :param term: A full term we are looking for, does not need to exist in the skip file
         :return: An offset in the terms file to start looking
         """
-        term = term[:self.size]
+        term = term[:self.size].ljust(4)
         self.handler.seek(0, 0)
         while True:
-            length_data = self.handler.read(4)
-            if not length_data:
-                break
-            key_length = struct.unpack('I', length_data)[0]
-            key = self.handler.read(key_length).decode('utf-8')
+            key = self.handler.read(self.size).decode('utf-8')
             loc = struct.unpack('I', self.handler.read(4))[0]
             if key < term:
                 continue
