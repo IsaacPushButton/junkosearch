@@ -19,7 +19,7 @@ def timing(func):
         duration = end_time - start_time
 
         # Print or log the duration
-        print(f"Function {args[0].__class__.__name__}.{func.__name__} took {duration:.4f} seconds to execute.")
+        print(f"Function {args[0].__class__.__name__}.{func.__name__} {str(args)[:50]} took {duration:.4f} seconds to execute.")
 
         return result
 

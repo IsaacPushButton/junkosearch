@@ -9,4 +9,4 @@ class GnafDocument(Document):
 
 
 docs = docs_from_csv("./misc/GNAF_CORE.psv", GnafDocument,"|", "utf-8-sig")
-generate_indices(docs)
+generate_indices(docs, seg_size=1024*1024*600)

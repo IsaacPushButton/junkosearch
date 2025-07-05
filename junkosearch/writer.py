@@ -1,17 +1,18 @@
 import csv
+import os
 from collections import defaultdict
 from typing import Iterable, Type
 
 from junkosearch.document import Document
 from junkosearch.handlers import Docfile, Positions, Terms, Skip
 
-MAX_SEG_SIZE = 500000 * 1024 * 1024 * 100
+MAX_SEG_SIZE = 5000 * 1024 * 1024
 
 EST_POS_BYTES = 41
 
 
 class SegmentWriter:
-    def __init__(self, seg_no: int):
+    def __init__(self, seg_no: int, max_size = MAX_SEG_SIZE):
         self.seg_no = seg_no
         self.docfile = Docfile(seg_no, create=True)
         self.positions = Positions(seg_no, create=True)
@@ -21,9 +22,10 @@ class SegmentWriter:
         self.working_index = defaultdict(set, {})
         self.pos_count = 0
         self.open = True
+        self.max_size = max_size
 
     def big_enough(self):
-        return self.index_mem_size() > MAX_SEG_SIZE
+        return self.index_mem_size() > self.max_size
 
     def index_mem_size(self):
         return self.pos_count * EST_POS_BYTES
@@ -58,16 +60,20 @@ class SegmentWriter:
         self.docfile.store(doc)
 
 
-def generate_indices(docs: Iterable[Document]):
+def generate_indices(docs: Iterable[Document], n=None, seg_size = MAX_SEG_SIZE):
+    os.makedirs("index", exist_ok=True)
     seg_count = 0
-    current_seg = SegmentWriter(seg_count)
+    current_seg = SegmentWriter(seg_count, max_size=seg_size)
     for idx, doc in enumerate(docs):
+        if n and idx > n:
+            break
         if idx % 50000 == 0 and idx > 0:
             print(f"Processing {idx} - [{round(current_seg.index_mem_size() /1024 /1024 )}mb]")
             if current_seg.big_enough():
                 print("Closing segment")
                 current_seg.finalise()
-                break
+                seg_count += 1
+                current_seg = SegmentWriter(seg_count, max_size=seg_size)
 
         current_seg.store(doc.doc_vals(), *doc.tokens())
 

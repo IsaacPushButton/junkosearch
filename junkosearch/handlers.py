@@ -3,7 +3,7 @@ import struct
 from mmap import mmap
 from typing import Optional, List, Tuple
 
-from junkosearch.util import timing
+# from junkosearch.util import timing
 
 ROOT_PATH = "./"
 
@@ -13,7 +13,7 @@ class Docfile:
     """
     def __init__(self, seg_no: int, create=False):
         mode = "w" if create else "r"
-        self.handler = open(f"{ROOT_PATH}/index/docfile_{seg_no}.junk", f"{mode}b+")
+        self.handler = open(f"{ROOT_PATH}/index/docfile_{seg_no}.junk", f"{mode}b")
 
     def tell(self):
         return self.handler.tell()
@@ -32,7 +32,7 @@ class Docfile:
         self.handler.write(doc.encode("utf-8"))
         return marker
 
-    @timing
+    #@timing
     def fetch(self, idx: int) -> str:
         """
         :param idx: The offset to find the document
@@ -50,7 +50,7 @@ class Skip:
     """
     def __init__(self, seg_no: int, create=False):
         mode = "w" if create else "r"
-        self.handler = open(f"{ROOT_PATH}index/terms_{seg_no}.tsk", f"{mode}b+")
+        self.handler = open(f"{ROOT_PATH}index/terms_{seg_no}.tsk", f"{mode}b")
         self.size = 4
         self.file_size = os.fstat(self.handler.fileno()).st_size
 
@@ -67,28 +67,45 @@ class Skip:
         :param term_marker: An offset in the terms file
         :return: Offset we stored the skip at
         """
-        key = key.ljust(4)[:4]
+        key = key[:self.size].ljust(self.size)
         self.handler.seek(0,2)
         marker = self.handler.tell()
         self.handler.write(key.encode("utf-8"))
         self.handler.write(struct.pack("I", term_marker))
         return marker
 
-    @timing
+    #@timing
     def lookup(self, term: str) -> Optional[int]:
         """
         :param term: A full term we are looking for, does not need to exist in the skip file
         :return: An offset in the terms file to start looking
         """
-        term = term[:self.size].ljust(4)
-        self.handler.seek(0, 0)
-        while True:
-            key = self.handler.read(self.size).decode('utf-8')
-            loc = struct.unpack('I', self.handler.read(4))[0]
+        term = term[:self.size].ljust(self.size)
+
+        record_size = self.size + 4 # <size> string + 4 byte int
+
+        # binary search from chatgpt
+        num_records = self.file_size // record_size
+
+        lo = 0
+        hi = num_records - 1
+        result = None
+
+        while lo <= hi:
+            mid = (lo + hi) // 2
+            offset = mid * record_size
+            self.handler.seek(offset)
+
+            key = self.handler.read(4).decode("utf-8")
+            loc = struct.unpack("I", self.handler.read(4))[0]
+
             if key < term:
-                continue
-            return loc
-        return None
+                lo = mid + 1
+            else:
+                result = loc
+                hi = mid - 1
+
+        return result
 
 
 class Terms:
@@ -98,7 +115,7 @@ class Terms:
     """
     def __init__(self, seg_no: int, create=False):
         mode = "w" if create else "r"
-        self.handler = open(f"{ROOT_PATH}index/terms_{seg_no}.tii", f"{mode}b+")
+        self.handler = open(f"{ROOT_PATH}index/terms_{seg_no}.tii", f"{mode}b")
 
     def tell(self):
         return self.handler.tell()
@@ -119,7 +136,7 @@ class Terms:
         self.handler.write(key_encoded)  # Key
         self.handler.write(struct.pack("I", positions_marker))
         return marker
-    @timing
+    #@timing
     def lookup(self, term: str,  start_at: int) -> Optional[int]:
         """
         :param term: A term to find in the inverted index
@@ -166,12 +183,12 @@ class Positions:
     def __init__(self, seg_no: int, create=False):
         mode = "w" if create else "r"
 
-        self.file = open(f"{ROOT_PATH}index/positions_{seg_no}.pos", f"{mode}b+")
-        if create:
-            self.handler = self.file
-        else:
-            self.handler = mmap(self.file.fileno(), 0)
-        #self.handler = open(f"{ROOT_PATH}index/positions_{seg_no}.pos", f"{mode}b+")
+        #self.file = open(f"{ROOT_PATH}index/positions_{seg_no}.pos", f"{mode}b+")
+        # if create:
+        #     self.handler = self.file
+        # else:
+        #     self.handler = mmap(self.file.fileno(), 0)
+        self.handler = open(f"{ROOT_PATH}index/positions_{seg_no}.pos", f"{mode}b")
 
     def tell(self):
         return self.handler.tell()
@@ -195,7 +212,7 @@ class Positions:
             prev_offset = offset
         return marker
 
-    @timing
+    #@timing
     def fetch(self, offset: int) -> Tuple[int]:
         """
         :param offset:
