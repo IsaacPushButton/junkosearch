@@ -8,7 +8,9 @@ from functools import lru_cache
 from handlers import Docfile, Positions, Terms, Skip
 from collections import defaultdict
 
+from junkosearch.document import Field
 from junkosearch.util import timing
+from load_gnaf import GnafDocument
 
 
 class SegmentReader:
@@ -125,10 +127,25 @@ def threaded_search(terms: list[str]) -> list[str]:
 
     return final_results
 
+def q(field, term: str):
+    return f"{field.query_code}::{term}"
+
+
 
 #GANSW704331663~30 HIBISCUS AV, CARLINGFORD NSW 2118
 
-search_query = ["ut::UNIT", "un::G12", "sn1::30", "sn::HIBISCUS", "ln::CARLINGFORD"]
+#search_query = ["ut::UNIT", "un::G12", "sn1::30", "sn::HIBISCUS", "ln::CARLINGFORD"]
+
+search_query = [
+   # q(GnafDocument.unit_type, "UNIT"),
+    q(GnafDocument.unit_number, "G12"),
+    q(GnafDocument.street_number_1, "30"),
+    q(GnafDocument.street_name, "HIBISCUS"),
+    q(GnafDocument.locality_name, "CARLINGFORD")
+]
+
+#search_query = [q(GnafDocument.full_address_string, "30 HIBISCUS AV, CARLINGFORD NSW 2118")]
+
 
 with cProfile.Profile() as pr:
     results = threaded_search(search_query)

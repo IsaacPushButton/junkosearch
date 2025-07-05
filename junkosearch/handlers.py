@@ -1,7 +1,7 @@
 import os
 import struct
 from typing import Optional, List, Tuple
-from junkosearch.constants import ROOT_PATH, FIELD_ID_PREFIX_LEN
+from junkosearch.constants import ROOT_PATH, FIELD_ID_PREFIX_LEN, SKIP_TABLE_TOKEN_MAX_SIZE
 
 
 class Docfile:
@@ -48,7 +48,7 @@ class Skip:
     def __init__(self, seg_no: int, create=False):
         mode = "w" if create else "r"
         self.handler = open(f"{ROOT_PATH}index/terms_{seg_no}.tsk", f"{mode}b")
-        self.token_size = 4
+        self.token_size = SKIP_TABLE_TOKEN_MAX_SIZE
         self.size = FIELD_ID_PREFIX_LEN + 2 + self.token_size
         self.file_size = os.fstat(self.handler.fileno()).st_size
 

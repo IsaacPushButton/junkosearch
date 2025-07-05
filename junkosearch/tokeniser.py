@@ -11,6 +11,11 @@ class Tokeniser(ABC):
     def tokenise(self, s: str) -> Iterable[str]:
         ...
 
+class NothingTokeniser(Tokeniser):
+    def __init__(self):
+        return
+    def tokenise(self, s: str) -> Iterable[str]:
+        return [s]
 
 class SimpleTokeniser(Tokeniser):
     def __init__(self):
