@@ -1,11 +1,8 @@
 import os
 import struct
-from mmap import mmap
 from typing import Optional, List, Tuple
+from junkosearch.constants import ROOT_PATH, FIELD_ID_PREFIX_LEN
 
-# from junkosearch.util import timing
-
-ROOT_PATH = "./"
 
 class Docfile:
     """
@@ -51,9 +48,12 @@ class Skip:
     def __init__(self, seg_no: int, create=False):
         mode = "w" if create else "r"
         self.handler = open(f"{ROOT_PATH}index/terms_{seg_no}.tsk", f"{mode}b")
-        self.size = 4
+        self.token_size = 4
+        self.size = FIELD_ID_PREFIX_LEN + 2 + self.token_size
         self.file_size = os.fstat(self.handler.fileno()).st_size
 
+    def skip_code_for_token(self, field_id: str, token:str):
+        return f"{field_id}::{token[:self.token_size]}".ljust(self.size)
 
     def tell(self):
         return self.handler.tell()
@@ -61,16 +61,17 @@ class Skip:
     def close(self):
         self.handler.close()
 
-    def store(self, key: str, term_marker: int):
+    def store(self, token: str, term_marker: int):
         """
-        :param key: Key to store
+        :param token: token to store
         :param term_marker: An offset in the terms file
         :return: Offset we stored the skip at
         """
-        key = key[:self.size].ljust(self.size)
+        assert len(token) == self.size
+
         self.handler.seek(0,2)
         marker = self.handler.tell()
-        self.handler.write(key.encode("utf-8"))
+        self.handler.write(token.encode("utf-8"))
         self.handler.write(struct.pack("I", term_marker))
         return marker
 
@@ -80,7 +81,7 @@ class Skip:
         :param term: A full term we are looking for, does not need to exist in the skip file
         :return: An offset in the terms file to start looking
         """
-        term = term[:self.size].ljust(self.size)
+        assert len(term) == self.size
 
         record_size = self.size + 4 # <size> string + 4 byte int
 
@@ -96,9 +97,10 @@ class Skip:
             offset = mid * record_size
             self.handler.seek(offset)
 
-            key = self.handler.read(4).decode("utf-8")
+            key = self.handler.read(self.size).decode("utf-8")
             loc = struct.unpack("I", self.handler.read(4))[0]
-
+            if key == term:
+                return loc
             if key < term:
                 lo = mid + 1
             else:

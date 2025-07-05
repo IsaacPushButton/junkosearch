@@ -1,14 +1,16 @@
-from typing import List, Optional
+from collections import defaultdict
 
+from junkosearch.constants import FIELD_ID_PREFIX_LEN
 from junkosearch.tokeniser import Tokeniser
 
 
 class Field:
-    def __init__(self, name: str, store: bool, index: bool, tokenisers: Optional[List[Tokeniser]] = None):
-        self.name = name
+    def __init__(self, source_name: str, store: bool, index: bool, tokenisers: list[Tokeniser] | None = None, query_code: str = None):
+        self.source_name = source_name
         self.store = store
         self.index = index
         self.tokenisers = tokenisers
+        self.query_code = query_code
 
 
 class Document:
@@ -32,11 +34,11 @@ class Document:
         cls._create_field_map()
 
     def tokens(self):
-        tokens = []
+        tokens = defaultdict(list)
         for k,v in self._field_map.items():
             if v.index:
                 for tokeniser in v.tokenisers:
-                    tokens.extend(tokeniser.tokenise(self.__getattribute__(k)))
+                    tokens[v].extend([f"{v.query_code[:FIELD_ID_PREFIX_LEN]}::{i}" for i in tokeniser.tokenise(self.__getattribute__(k))])
         return tokens
     def doc_vals(self):
         vals = []

@@ -4,10 +4,7 @@ import glob
 import heapq
 import pstats
 from concurrent.futures import ThreadPoolExecutor
-from copy import copy
 from functools import lru_cache
-from typing import List, Tuple
-
 from handlers import Docfile, Positions, Terms, Skip
 from collections import defaultdict
 
@@ -23,12 +20,13 @@ class SegmentReader:
         self.skip = Skip(seg_no)
 
     #@timing
-    def _get_docs(self, positions: List[int]) -> List[str]:
+    def _get_docs(self, positions: list[int]) -> list[str]:
         return [self.docfile.fetch(i) for i in positions]
 
     #@timing
     def resolve_term(self, term: str):
-        skip_offset = self.skip.lookup(term)
+        field_id, token = term.split("::")
+        skip_offset = self.skip.lookup(self.skip.skip_code_for_token(field_id, token))
         if not skip_offset:
             return []
         position_offset = self.terms.lookup(term, skip_offset)
@@ -37,7 +35,7 @@ class SegmentReader:
         return self.positions.fetch(position_offset)
 
     #@timing
-    def search(self, terms: List[str]):
+    def search(self, terms: list[str]):
         doc_positions = []
 
         for term in terms:
@@ -100,10 +98,10 @@ def get_reader(seg: int) -> SegmentReader:
     return SegmentReader(seg)
 
 @timing
-def threaded_search(terms: List[str]) -> List[str]:
+def threaded_search(terms: list[str]) -> list[str]:
     seg_count = len(glob.glob("./index/**.junk"))
 
-    def worker(seg_reader: SegmentReader, terms: List[str], seg_no: int):
+    def worker(seg_reader: SegmentReader, terms: list[str], seg_no: int):
         hits = []
         for term in terms:
             hits.extend(seg_reader.resolve_term(term))
@@ -128,7 +126,9 @@ def threaded_search(terms: List[str]) -> List[str]:
     return final_results
 
 
-search_query = "986 WILD CATTLE".split(" ")
+#GANSW704331663~30 HIBISCUS AV, CARLINGFORD NSW 2118
+
+search_query = ["ut::UNIT", "un::G12", "sn1::30", "sn::HIBISCUS", "ln::CARLINGFORD"]
 
 with cProfile.Profile() as pr:
     results = threaded_search(search_query)
