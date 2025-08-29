@@ -8,10 +8,10 @@ from functools import lru_cache
 from handlers import Docfile, Positions, Terms, Skip
 from collections import defaultdict
 
+from junkosearch.constants import FIELD_ID_PREFIX_LEN
 from junkosearch.document import Field
 from junkosearch.util import timing
 from load_gnaf import GnafDocument
-
 
 class SegmentReader:
     def __init__(self, seg_no: int):
@@ -48,18 +48,6 @@ class SegmentReader:
         return self._get_docs([i[0] for i in top5])
 
 
-#@timing
-# def collect_top_n(segment_hits: dict[str, list[int]]):
-#     collector = collections.Counter()
-#     for seg, positions in segment_hits.items():
-#         for position in positions:
-#             collector[(seg, position)] += 1
-#     topN = collector.most_common(5)
-#     to_fetch = defaultdict(list)
-#     for ((seg, pos), count) in topN:
-#         to_fetch[seg].append(pos)
-#     return to_fetch
-#
 
 def collect_top_n(segment_hits: dict[str, list[int]], max_score: int,  n: int = 5, early_exit:bool = False):
     freq = defaultdict(int)
@@ -78,7 +66,6 @@ def collect_top_n(segment_hits: dict[str, list[int]], max_score: int,  n: int = 
 
     if len(topN_early) < n:
         items = [(count, key) for key, count in freq.items()]
-        # Use heapq to find top N
         topN = heapq.nlargest(n, items)
     else:
         topN = topN_early
@@ -117,7 +104,6 @@ def threaded_search(terms: list[str]) -> list[str]:
             futures.append(executor.submit(worker,sr, terms, seg))
 
         results = [future.result() for future in futures]
-    #results = [worker(term, seg) for term in terms for seg in range(seg_count)]
     for hits, seg in results:
         segment_hits[seg].extend(hits)
 
@@ -128,30 +114,18 @@ def threaded_search(terms: list[str]) -> list[str]:
     return final_results
 
 def q(field, term: str):
-    return f"{field.query_code}::{term}"
+    terms = field.tokenisers[0].search_tokenise(term)
 
+    return [f"{field.query_code[:FIELD_ID_PREFIX_LEN]}::{i}" for i in terms]
 
-
-#GANSW704331663~30 HIBISCUS AV, CARLINGFORD NSW 2118
-
-#search_query = ["ut::UNIT", "un::G12", "sn1::30", "sn::HIBISCUS", "ln::CARLINGFORD"]
+WARM_SEGMENTS = [get_reader(i) for i in  range(len(glob.glob("./index/**.junk")))]
 
 search_query = [
-   # q(GnafDocument.unit_type, "UNIT"),
-    q(GnafDocument.unit_number, "G12"),
-    q(GnafDocument.street_number_1, "30"),
-    q(GnafDocument.street_name, "HIBISCUS"),
-    q(GnafDocument.locality_name, "CARLINGFORD")
+    *q(GnafDocument.street_number_1, "113"),
+    *q(GnafDocument.street_name, "CANBERRA"),
+    *q(GnafDocument.locality_name, "GRIFFITH"),
 ]
-
-#search_query = [q(GnafDocument.full_address_string, "30 HIBISCUS AV, CARLINGFORD NSW 2118")]
-
-
-with cProfile.Profile() as pr:
-    results = threaded_search(search_query)
-
+results = threaded_search(search_query)
 print("\n".join(results))
 
-stats = pstats.Stats(pr)
-stats.sort_stats("tottime").print_stats(30)
 

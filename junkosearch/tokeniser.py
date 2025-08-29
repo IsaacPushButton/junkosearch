@@ -10,18 +10,28 @@ class Tokeniser(ABC):
     @abstractmethod
     def tokenise(self, s: str) -> Iterable[str]:
         ...
+    @abstractmethod
+    def search_tokenise(self, s: str) -> Iterable[str]:
+        ...
+
 
 class NothingTokeniser(Tokeniser):
     def __init__(self):
         return
     def tokenise(self, s: str) -> Iterable[str]:
         return [s]
+    def search_tokenise(self, s: str) -> Iterable[str]:
+        return self.tokenise(s)
 
 class SimpleTokeniser(Tokeniser):
     def __init__(self):
         return
+
     def tokenise(self, s: str) -> Iterable[str]:
         return s.split(" ")
+
+    def search_tokenise(self, s: str) -> Iterable[str]:
+        return self.tokenise(s)
 
 
 class EdgeNgram(Tokeniser):
@@ -40,3 +50,10 @@ class EdgeNgram(Tokeniser):
             for _len in range(self.min_len, min(self.max_len, len(v) + 1)):
                 tokens.append(v[:_len])
         return tokens
+
+    def search_tokenise(self, s: str) -> Iterable[str]:
+        tokens = s.split(self.split) if self.split else [s]
+        return [i[:self.max_len - 1] for i in tokens]
+
+
+

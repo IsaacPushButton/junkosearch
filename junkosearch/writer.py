@@ -40,7 +40,6 @@ class SegmentWriter:
         last_skip_code = None
         for full_token, positions in sorted(self.working_index.items(), key=lambda x: x[0]):
             field_id, token = full_token.split("::")
-            #this_skip_code = f"{field_id}::{token[:self.skip.size]}"
             this_skip_code = self.skip.skip_code_for_token(field_id, token)
             if this_skip_code != last_skip_code:
                 self.skip.store(this_skip_code, self.terms.tell())

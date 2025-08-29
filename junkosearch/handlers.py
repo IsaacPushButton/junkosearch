@@ -138,6 +138,7 @@ class Terms:
         self.handler.write(key_encoded)  # Key
         self.handler.write(struct.pack("I", positions_marker))
         return marker
+
     #@timing
     def lookup(self, term: str,  start_at: int) -> Optional[int]:
         """
@@ -160,36 +161,10 @@ class Terms:
         return None
 
 
-def encode_varint(value: int) -> bytes:
-    result = []
-    while value > 0x7F:
-        result.append((value & 0x7F) | 0x80)
-        value >>= 7
-    result.append(value & 0x7F)
-    return bytes(result)
-
-def decode_varint(data: bytes, start: int) -> Tuple[int, int]:
-    shift = 0
-    result = 0
-    idx = start
-    while True:
-        byte = data[idx]
-        idx += 1
-        result |= (byte & 0x7F) << shift
-        if byte & 0x80 == 0:
-            break
-        shift += 7
-    return result, idx
 
 class Positions:
     def __init__(self, seg_no: int, create=False):
         mode = "w" if create else "r"
-
-        #self.file = open(f"{ROOT_PATH}index/positions_{seg_no}.pos", f"{mode}b+")
-        # if create:
-        #     self.handler = self.file
-        # else:
-        #     self.handler = mmap(self.file.fileno(), 0)
         self.handler = open(f"{ROOT_PATH}index/positions_{seg_no}.pos", f"{mode}b")
 
     def tell(self):
@@ -235,3 +210,23 @@ class Positions:
 
         return tuple(positions) # noqa
 
+def encode_varint(value: int) -> bytes:
+    result = []
+    while value > 0x7F:
+        result.append((value & 0x7F) | 0x80)
+        value >>= 7
+    result.append(value & 0x7F)
+    return bytes(result)
+
+def decode_varint(data: bytes, start: int) -> Tuple[int, int]:
+    shift = 0
+    result = 0
+    idx = start
+    while True:
+        byte = data[idx]
+        idx += 1
+        result |= (byte & 0x7F) << shift
+        if byte & 0x80 == 0:
+            break
+        shift += 7
+    return result, idx
